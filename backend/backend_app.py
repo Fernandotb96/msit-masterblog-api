@@ -73,5 +73,24 @@ def update_post(id):
     return jsonify(post), 200
 
 
+@app.route('/api/posts/search', methods=['GET'])
+def search_posts():
+    title = request.args.get('title')
+    content = request.args.get('content')
+    if not title and not content:
+        return jsonify({"error": "Search conditions not provided."}), 400
+    results = []
+    for post in POSTS:
+        match_title = True
+        match_content = True
+        if title:
+            match_title = title.lower() in post['title'].lower()
+        if content:
+            match_content = content.lower() in post['content'].lower()
+        if match_title and match_content:
+            results.append(post)
+    return jsonify(results), 200
+
+
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5002, debug=True)
