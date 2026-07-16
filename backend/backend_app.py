@@ -15,7 +15,7 @@ def validate_fields(data, required_fields):
     Check if JSON data is valid and contains required fields.
     Returns tuple (is_valid, error_message).
     """
-    if not data:
+    if not data or not isinstance(data, dict):
         return False, "Data empty or format not valid."
 
     missing_fields = []
@@ -33,14 +33,18 @@ def validate_fields(data, required_fields):
 @app.route('/api/posts', methods=['GET', 'POST'])
 def handle_posts():
     if request.method == 'POST':
-        new_post = request.get_json()
+        data = request.get_json()
         # Check if post is valid
-        is_valid, error_message = validate_fields(new_post, ["title", "content"])
+        is_valid, error_message = validate_fields(data, ["title", "content"])
         if not is_valid:
             return jsonify({"error": error_message}), 400
         # If valid, get new id and add to the list
         new_id = max((post['id'] for post in POSTS), default=0) + 1
-        new_post['id'] = new_id
+        new_post = {
+            "id": new_id,
+            "title": data['title'].strip(),
+            "content": data['content'].strip()
+        }
         POSTS.append(new_post)
         return jsonify(new_post), 201
     # GET request.
