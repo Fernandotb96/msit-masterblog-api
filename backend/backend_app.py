@@ -31,7 +31,7 @@ def validate_fields(data, required_fields):
 
 
 @app.route('/api/posts', methods=['GET', 'POST'])
-def get_posts():
+def handle_posts():
     if request.method == 'POST':
         new_post = request.get_json()
         # Check if post is valid
@@ -39,12 +39,23 @@ def get_posts():
         if not is_valid:
             return jsonify({"error": error_message}), 400
         # If valid, get new id and add to the list
-        new_id = max((post['id'] for post in POSTS)) + 1
+        new_id = max((post['id'] for post in POSTS), default=0) + 1
         new_post['id'] = new_id
         POSTS.append(new_post)
         return jsonify(new_post), 201
-    # GET request, return all posts
-    return jsonify(POSTS)
+    # GET request.
+    sort_field = request.args.get('sort')
+    direction = request.args.get('direction', 'asc')
+    if sort_field and sort_field not in ['title', 'content']:
+        return jsonify({"error": f"Sort field {sort_field} not valid. Only 'title' or 'content' allowed"}), 400
+    if direction not in ['asc', 'desc']:
+        return jsonify({"error": f"Direction {direction} not valid. Only 'asc' or 'desc' allowed"}), 400
+    # Create new sorted list
+    if sort_field:
+        is_reverse = direction == 'desc'
+        sorted_post = sorted(POSTS, key=lambda post: post[sort_field].lower(), reverse=is_reverse)
+        return jsonify(sorted_post), 200
+    return jsonify(POSTS), 200
 
 
 @app.route('/api/posts/<int:id>', methods=['DELETE'])
